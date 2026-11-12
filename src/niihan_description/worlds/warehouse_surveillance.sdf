@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <world name="warehouse_surveillance">
+    <gravity>0 0 -9.81</gravity>
+    <physics name="warehouse_physics" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
+    <light type="directional" name="sun">
+      <pose>0 0 25 0 0 0</pose><cast_shadows>true</cast_shadows>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <direction>-0.3 0.2 -0.9</direction>
+    </light>
+    <scene><ambient>0.6 0.6 0.6 1</ambient><background>0.75 0.8 0.85 1</background></scene>
+    <model name="warehouse_environment">
+      <static>true</static>
+      <!-- Warehouse GLB is Y-up; +90deg X maps its floor y=-2.8505981861 to Gazebo z=0. -->
+      <pose>0 0 2.8505981861 1.57079632679 0 0</pose>
+      <link name="warehouse_visual_link">
+        <visual name="warehouse_visual">
+          <geometry><mesh><uri>model://warehouse/meshes/warehouse.glb</uri><scale>1 1 1</scale></mesh></geometry>
+        </visual>
+      </link>
+    </model>
+    <!-- TEMPORARY testing support, not accurate rack/wall collisions. -->
+    <model name="temporary_collision_floor">
+      <static>true</static><pose>0 0 -0.05 0 0 0</pose>
+      <link name="floor_link">
+        <collision name="floor_collision">
+          <geometry><box><size>200 200 0.1</size></box></geometry>
+        </collision>
+      </link>
+    </model>
+  </world>
+</sdf>

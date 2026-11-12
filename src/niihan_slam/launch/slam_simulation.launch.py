@@ -41,7 +41,9 @@ def stack(context):
     clock={'use_sim_time':True}
     def node(package,executable,name,params=None,**kw):return Node(package=package,executable=executable,name=name,output='screen',parameters=[clock]+(params or []),**kw)
     def include(path,args):return IncludeLaunchDescription(PythonLaunchDescriptionSource(path),launch_arguments=args.items())
-    nodes=[include(os.path.join(desc,'launch','niihan_gazebo.launch.py'),{'world':LaunchConfiguration('world'),'spawn_x':LaunchConfiguration('spawn_x'),'spawn_y':LaunchConfiguration('spawn_y'),'headless':LaunchConfiguration('headless'),'seed':LaunchConfiguration('seed'),'external_stack':'true','minimal_sensors':'true','mapping':'false','launch_nav2':'false','vortex_3d':'false','cliff_detect':'false','rqt_cam':'false','patrol':'false'}),
+    nodes=[include(os.path.join(desc,'launch','niihan_gazebo.launch.py'),{'world':LaunchConfiguration('world'),
+        'robot_xacro':LaunchConfiguration('robot_xacro'),
+        'robot_name':LaunchConfiguration('robot_name'),'spawn_x':LaunchConfiguration('spawn_x'),'spawn_y':LaunchConfiguration('spawn_y'),'headless':LaunchConfiguration('headless'),'seed':LaunchConfiguration('seed'),'external_stack':'true','minimal_sensors':'true','mapping':'false','launch_nav2':'false','vortex_3d':'false','cliff_detect':'false','rqt_cam':'false','patrol':'false'}),
         node('glim_ros','glim_rosnode','glim_ros',[{'config_path':cfg,'dump_on_unload':False}],remappings=[('/tf','/niihan/lio/tf')]),
         node('niihan_slam','tf_filter','lio_tf_filter',[{'mapping':mode=='mapping'}]),
         node('niihan_slam','map_bridge','slam_map_bridge',[{'mapping':mode=='mapping','output_directory':output,'map_file':map_file or '', 'environment_id':environment}]),
@@ -60,4 +62,6 @@ def stack(context):
     return nodes
 
 def generate_launch_description():
-    return LaunchDescription([DeclareLaunchArgument(n,default_value=v) for n,v in [('world','niihan_portable_site.sdf'),('headless','false'),('rviz','true'),('seed','42'),('spawn_x','-10.0'),('spawn_y','0.0'),('mode','auto'),('environment_id','portable-site'),('map_directory',os.path.expanduser('~/.local/share/niihan/maps')),('map_file',''),('rtk_alignment_file',''),('gnss_source','gazebo'),('allow_simulated_rtk','false'),('initial_x','0.0'),('initial_y','0.0'),('initial_yaw','0.0'),('output_directory','')]]+[OpaqueFunction(function=stack)])
+    return LaunchDescription([DeclareLaunchArgument(n,default_value=v) for n,v in [('world','niihan_portable_site.sdf'),
+        ('robot_xacro','niihan.urdf.xacro'),
+        ('robot_name','niihan'),('headless','false'),('rviz','true'),('seed','42'),('spawn_x','-10.0'),('spawn_y','0.0'),('mode','auto'),('environment_id','portable-site'),('map_directory',os.path.expanduser('~/.local/share/niihan/maps')),('map_file',''),('rtk_alignment_file',''),('gnss_source','gazebo'),('allow_simulated_rtk','false'),('initial_x','0.0'),('initial_y','0.0'),('initial_yaw','0.0'),('output_directory','')]]+[OpaqueFunction(function=stack)])

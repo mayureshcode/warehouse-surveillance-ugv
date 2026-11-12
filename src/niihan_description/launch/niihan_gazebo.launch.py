@@ -20,7 +20,11 @@ def generate_launch_description():
         'use_sim_time', default_value='true',
         description='Use the same ROS clock for simulation, mapping and navigation',
     )
-    xacro_file = os.path.join(pkg_description, 'urdf', 'niihan.urdf.xacro')
+    xacro_file = PathJoinSubstitution([
+        pkg_description,
+        'urdf',
+        LaunchConfiguration('robot_xacro')
+    ])
 
     robot_description = ParameterValue(
         Command(['xacro ', xacro_file, ' minimal_sensors:=', LaunchConfiguration('minimal_sensors')]), value_type=str)
@@ -156,7 +160,7 @@ def generate_launch_description():
         package='ros_gz_sim',
         executable='create',
         arguments=[
-            '-name', 'niihan',
+            '-name', LaunchConfiguration('robot_name'),
             '-topic', '/robot_description',
             '-x', LaunchConfiguration('spawn_x'),
             '-y', LaunchConfiguration('spawn_y'),
@@ -393,6 +397,14 @@ def generate_launch_description():
         DeclareLaunchArgument('external_stack', default_value='false'),
         DeclareLaunchArgument('minimal_sensors', default_value='false'),
         DeclareLaunchArgument('seed', default_value='42'),
+        DeclareLaunchArgument(
+            'robot_xacro',
+            default_value='niihan.urdf.xacro'
+        ),
+        DeclareLaunchArgument(
+            'robot_name',
+            default_value='niihan'
+        ),
         DeclareLaunchArgument('spawn_x', default_value='-12.0'),
         DeclareLaunchArgument('spawn_y', default_value='0.0'),
         DeclareLaunchArgument('spawn_z', default_value='0.15'),
