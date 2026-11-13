@@ -14,7 +14,7 @@ def box(w,name,x,y,z,sx,sy,sz,color,collision=True):
  return m
 layouts=[]
 for k in range(7):
- root=E.Element('sdf',version='1.9');w=sub(root,'world',name='niihan_seaport')
+ root=E.Element('sdf',version='1.9');w=sub(root,'world',name='warehouse_seaport')
  for fn,cl in [('physics','Physics'),('user-commands','UserCommands'),('scene-broadcaster','SceneBroadcaster'),('imu','Imu'),('navsat','NavSat'),('contact','Contact'),('sensors','Sensors')]:
   p=sub(w,'plugin',filename=f'gz-sim-{fn}-system',name=f'gz::sim::systems::{cl}')
   if fn=='sensors':sub(p,'render_engine','ogre2')

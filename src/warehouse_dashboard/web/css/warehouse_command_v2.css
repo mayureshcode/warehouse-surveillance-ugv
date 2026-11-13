@@ -1,0 +1,93 @@
+/* Warehouse Command Center v2: presentation layer only. */
+:root {
+  --bg-color:#07111b; --panel-bg:#0b1b2a; --border-color:#1d4358;
+  --text-color:#e1f4fa; --accent-color:#08d8e7; --danger-color:#f1434c;
+  --warning-color:#ffbb43; --ok-color:#35e98b;
+}
+*{box-sizing:border-box}
+body.wcc-v2{font-family:Inter,"Segoe UI",system-ui,sans-serif;background:radial-gradient(ellipse at 60% -30%,#103750 0%,#07111b 52%,#06101a 100%);color:#d8eff7;display:grid;grid-template-columns:86px minmax(0,1fr);grid-template-rows:68px minmax(400px,1fr) minmax(195px,31vh);gap:10px;padding:10px;height:100vh;min-height:760px;overflow:hidden}
+.wcc-v2 .top-bar{grid-column:1/-1;grid-row:1;min-height:0;height:auto;gap:14px;padding:9px 18px;border:1px solid #275269;border-radius:12px;background:linear-gradient(120deg,#102435,#091623);box-shadow:0 6px 24px #0005}
+.wcc-v2 .top-title{white-space:nowrap;font-size:clamp(15px,1.5vw,24px);letter-spacing:1.2px;color:#effdff}
+.wcc-v2 .top-title:before{content:'⌂';color:#00d9ed;font-size:27px;vertical-align:-2px;margin-right:12px}
+.wcc-v2 .top-stats{display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0;flex-wrap:wrap}
+.wcc-v2 .status-badge{background:#0d2834!important;border:1px solid #24566d;border-radius:9px;padding:9px 12px;color:#b8e7f4!important;font-size:11px;letter-spacing:.4px;white-space:nowrap}
+.wcc-v2 .status-badge.ok{color:#45f2a3!important;border-color:#22775d}
+.wcc-v2 .status-badge.error{color:#ff8585!important;border-color:#a43e50}
+.wcc-v2 .status-badge.warning{color:#ffc76d!important;border-color:#8c652c}
+.wcc-v2 .status-badge.info{color:#52d8ff!important}
+.wcc-v2 .btn-estop,.wcc-v2 .btn-clear-estop{padding:11px 17px;border-radius:9px;white-space:nowrap;font-size:14px;letter-spacing:.6px;animation:none;box-shadow:0 0 0 1px #ffffff28,0 0 18px #e842433f;min-width:120px}
+.wcc-v2 .wcc-sidebar{grid-column:1;grid-row:2/4;background:linear-gradient(180deg,#0e2839,#081a27);border:1px solid #1a4e64;border-radius:13px;display:flex;flex-direction:column;align-items:stretch;padding:12px 7px;gap:12px;min-width:0}
+.wcc-v2 .wcc-brand{font-size:33px;color:#25dff0;text-align:center;padding:7px 0 15px;border-bottom:1px solid #255068}
+.wcc-v2 .wcc-nav{display:flex;flex-direction:column;gap:8px}
+.wcc-v2 .wcc-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:transparent;border:1px solid transparent;border-radius:11px;padding:11px 1px;color:#a8cbdc;cursor:pointer;font-size:10px;min-height:72px}
+.wcc-v2 .wcc-nav button .wcc-icon{font-size:24px;line-height:1}
+.wcc-v2 .wcc-nav button.active,.wcc-v2 .wcc-nav button:hover{background:#074257;border-color:#0fa2b6;color:#4ff6ff}
+.wcc-v2 .wcc-sidebar-note{margin-top:auto;text-align:center;color:#4893a6;font-size:10px;line-height:1.7}
+.wcc-v2 .main-layout{grid-column:2;grid-row:2;margin:0;padding:0;gap:11px;height:auto;min-height:0;display:grid;grid-template-columns:minmax(0,1.7fr) minmax(310px,.9fr);align-items:stretch}
+.wcc-v2 .view-panel,.wcc-v2 .panel-section,.wcc-v2 .bottom-panel,.wcc-v2 .wcc-card{border:1px solid #22546a;border-radius:13px;background:linear-gradient(160deg,#0c2030,#0a1825 68%);box-shadow:inset 0 1px 0 #ffffff0b;overflow:hidden}
+.wcc-v2 .view-panel{height:100%;min-height:0;position:relative;display:flex;flex-direction:column}
+.wcc-v2 .view-tabs{background:#0b1c2a;padding:10px 12px;border-color:#1a4055;gap:7px;align-items:center;flex-wrap:wrap}
+.wcc-v2 .tab-btn{border:1px solid #27576d;border-radius:9px;padding:12px 18px;color:#bfdce6;font-size:12px;letter-spacing:.5px}
+.wcc-v2 .tab-btn.active{background:linear-gradient(90deg,#00d6e9,#35e9d6);border-color:#49f5f5;color:#001927;box-shadow:0 0 16px #03daf341}
+.wcc-v2 .view-container{min-height:0}
+.wcc-v2 #three-canvas-container{height:100%}
+.wcc-v2 #map-canvas{background:#091826}
+.wcc-v2 .view-overlay{border:1px solid #215066;background:#081926d9;border-radius:8px;color:#afd5e2;font-size:11px;max-width:78%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wcc-v2 .map-controls{gap:9px;flex-wrap:wrap;bottom:12px;left:12px;right:12px}
+.wcc-v2 .map-controls span{background:#091a29e0;border-radius:7px;border:1px solid #204759;color:#a9c9d6}
+.wcc-v2 .wcc-map-tools{margin-left:auto;display:flex;gap:8px;pointer-events:auto}
+.wcc-v2 .wcc-map-tools button{background:#0c3444;color:#49eff0;border:1px solid #216d7a;border-radius:8px;padding:10px 13px;cursor:pointer;font-weight:750}
+.wcc-v2 .wcc-map-tools button:hover{background:#155469}
+.wcc-v2 .side-panel{display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:0;min-width:0}
+.wcc-v2 .panel-section{padding:12px 13px;flex-shrink:0}
+.wcc-v2 .section-title{font-size:12px;letter-spacing:1.0px;padding-bottom:10px;color:#e6faff;border-color:#244e60}
+.wcc-v2 .camera-wrapper{height:clamp(115px,20vh,230px);border-radius:9px;overflow:hidden;background:#030b11;border:1px solid #214254}
+.wcc-v2 #camera-stream{width:100%;height:100%;max-height:none;object-fit:contain}
+.wcc-v2 .telemetry-grid{gap:9px}
+.wcc-v2 .tel-item{border:1px solid #26495c;border-radius:9px;background:#102b3c;padding:10px 12px;font-size:12px}
+.wcc-v2 .tel-label{display:block;color:#8fb7cc;font-size:11px;margin-bottom:4px}
+.wcc-v2 .tel-val{font-size:17px;color:#f3fdff}
+.wcc-v2 .wcc-card{padding:12px 13px;flex-shrink:0}
+.wcc-v2 .wcc-card h3{font-size:12px;letter-spacing:1px;margin:0 0 12px;font-weight:800}
+.wcc-v2 .wcc-progress-head{display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:9px;gap:8px}
+.wcc-v2 .wcc-progress-head strong{font-size:23px;color:#48f2ba}
+.wcc-v2 .wcc-progress-track{height:8px;background:#133347;border-radius:12px;overflow:hidden}
+.wcc-v2 #wcc-progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#02bad3,#3af8a3);transition:width .2s}
+.wcc-v2 #wcc-progress-label{font-size:11px;color:#93bfd0;margin-top:9px}
+.wcc-v2 .wcc-log{max-height:145px;overflow:auto;display:flex;flex-direction:column;gap:7px}
+.wcc-v2 .wcc-log-row{font-size:11px;line-height:1.45;border-bottom:1px solid #244352;padding-bottom:7px;color:#bfdce5}
+.wcc-v2 .wcc-log-row time{font-variant-numeric:tabular-nums;color:#52b7d2;margin-right:9px}
+.wcc-v2 .bottom-panel{grid-column:2;grid-row:3;height:auto;min-height:0;display:flex;flex-direction:column;border-radius:13px}
+.wcc-v2 .mission-header{background:#0d2839;border-color:#205165;padding:9px 14px;gap:10px;flex-wrap:wrap}
+.wcc-v2 .mission-title{font-size:13px;letter-spacing:.8px;color:#e1f9ff}
+.wcc-v2 .mission-global-actions{gap:7px;flex-wrap:wrap}
+.wcc-v2 .btn{background:#123d50;color:#bdeaf0;border:1px solid #286377;border-radius:8px;padding:9px 11px;font-size:11px;letter-spacing:.3px;cursor:pointer}
+.wcc-v2 .btn:hover:enabled{filter:brightness(1.15);transform:translateY(-1px)}
+.wcc-v2 .btn:disabled{opacity:.43;cursor:not-allowed}
+.wcc-v2 .btn-primary{background:#008ba7;color:white}
+.wcc-v2 .btn-success{background:#0a7447;color:white;border-color:#29b579}
+.wcc-v2 .btn-warning{background:#765019;color:#ffe2ad;border-color:#b07b31}
+.wcc-v2 .btn-danger{background:#9b2836;color:#fff;border-color:#e14f5d}
+.wcc-v2 .mission-content{min-height:0;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(290px,.9fr);overflow:hidden}
+.wcc-v2 .waypoints-section{border-right:1px solid #245066;padding:9px 13px;min-height:0;overflow:hidden}
+.wcc-v2 .table-container{min-height:0;overflow:auto;margin-bottom:8px}
+.wcc-v2 .wp-table{font-size:11px}
+.wcc-v2 .wp-table th{background:#11344a;color:#9ed0e2;font-weight:800;padding:9px 6px}
+.wcc-v2 .wp-table td{padding:7px 6px;border-color:#1b4051}
+.wcc-v2 .wp-table input[type=number]{width:70px;border-radius:5px;background:#0b2c40;border-color:#296078;padding:3px;color:white}
+.wcc-v2 .wp-actions{gap:8px}
+.wcc-v2 .execution-section{min-height:0;overflow:auto;padding:10px 12px;gap:8px}
+.wcc-v2 .exec-status,.wcc-v2 .geofence-status-box{background:#0d2a3b;border:1px solid #214c61;border-radius:9px;padding:8px 10px}
+.wcc-v2 .exec-status{text-align:left}
+.wcc-v2 .state-text{font-size:18px;color:#3cf0b0}
+.wcc-v2 .progress-text{font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.wcc-v2 .exec-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.wcc-v2 .exec-actions .btn{padding:10px 5px;font-size:11px}
+.wcc-v2 #tel-health,.wcc-v2 #tel-map-state,.wcc-v2 #tel-gnss,.wcc-v2 #tel-gnss-metrics{font-size:11px;line-height:1.7;color:#a8c9d5}
+.wcc-v2 .joystick-wrapper{padding:6px}
+.wcc-v2 #joystick-zone{width:110px;height:110px}
+.wcc-v2 #joystick-knob{top:30px;left:30px}
+.wcc-v2 .mode-toggles{margin-bottom:6px}
+.wcc-v2 button:focus-visible{outline:2px solid #6af9f0;outline-offset:3px}
+@media(max-width:1250px){body.wcc-v2{grid-template-columns:72px minmax(0,1fr)}.wcc-v2 .main-layout{grid-template-columns:minmax(0,1.25fr) minmax(265px,.9fr)}.wcc-v2 .top-stats{gap:4px}.wcc-v2 .status-badge{padding:7px;font-size:10px}}
+@media(max-width:970px){body.wcc-v2{display:flex;flex-direction:column;min-height:100vh;height:auto;overflow:auto;padding:8px}.wcc-v2 .wcc-sidebar{display:none}.wcc-v2 .main-layout{display:flex;flex-direction:column;flex:none;height:auto}.wcc-v2 .view-panel{height:480px;flex:none}.wcc-v2 .side-panel{overflow:visible}.wcc-v2 .bottom-panel{min-height:370px;flex:none}.wcc-v2 .top-bar{flex-wrap:wrap}.wcc-v2 .mission-content{grid-template-columns:1fr}.wcc-v2 .waypoints-section{min-height:200px}}

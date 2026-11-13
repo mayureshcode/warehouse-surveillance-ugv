@@ -9,9 +9,9 @@ Before each run, archive the exact command, `git status`, first-party source dif
 ## Three-run protocol
 
 1. Create a fresh results directory and set `ROS_HOME` and `ROS_LOG_DIR` to that run's directories.
-2. Launch `niihan_full_system.launch.py headless:=true seed:=42 rqt_cam:=false` with the same installed overlay.
+2. Launch `warehouse_full_system.launch.py headless:=true seed:=42 rqt_cam:=false` with the same installed overlay.
 3. Wait for `/clock`, sensor streams, `map -> odom -> base_footprint` TF and active Nav2 lifecycle nodes. Require a stable initial pose/map before sending commands.
-4. Record `/clock`, `/scan`, `/odom`, `/tf`, `/tf_static`, `/map`, `/niihan/cmd_vel`, `/niihan/e_stop`, `/cliff_scan` and the mast point-cloud topic with `ros2 bag record`.
+4. Record `/clock`, `/scan`, `/odom`, `/tf`, `/tf_static`, `/map`, `/warehouse/cmd_vel`, `/warehouse/e_stop`, `/cliff_scan` and the mast point-cloud topic with `ros2 bag record`.
 5. Use the same inspected route and initial state. Record goal acknowledgement, terminal result, final position error, elapsed simulation time, stop events and minimum obstacle clearance.
 6. Save the 2D map with `ros2 run nav2_map_server map_saver_cli -f <run>/map` and stop gracefully to save the 3D map.
 7. Repeat from a fresh simulator process and fresh run directory three times.

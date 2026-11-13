@@ -24,16 +24,16 @@ for arg in "$@"; do
     *) echo "Unknown option: $arg (see ./setup.sh --help)" >&2;exit 2;;
   esac
 done
-if [[ "${NIIHAN_SETUP_CLEAN_ENV:-}" != 1 ]]; then
+if [[ "${WAREHOUSE_SETUP_CLEAN_ENV:-}" != 1 ]]; then
   exec env -u AMENT_PREFIX_PATH -u COLCON_PREFIX_PATH -u CMAKE_PREFIX_PATH \
     -u PYTHONPATH -u LD_LIBRARY_PATH -u ROS_DISTRO -u ROS_VERSION \
-    NIIHAN_SETUP_CLEAN_ENV=1 \
+    WAREHOUSE_SETUP_CLEAN_ENV=1 \
     bash --noprofile --norc "$root/setup.sh" "$@"
 fi
 source "$root/scripts/platform.sh"
-niihan_select_platform
+warehouse_select_platform
 if $check; then
-  niihan_source_ros
+  warehouse_source_ros
   source "$root/scripts/environment.sh"
   check_tools=(git node xacro gz)
   if $source_build; then check_tools+=(cmake colcon gcc); fi
@@ -53,7 +53,7 @@ PY
     source "$root/install/local_setup.bash"
     python3 - <<'PY'
 from ament_index_python.packages import get_package_share_directory
-for name in ['niihan_description','niihan_dashboard','niihan_bringup','niihan_slam','glim_ros','nav2_bringup']:
+for name in ['warehouse_description','warehouse_dashboard','warehouse_bringup','warehouse_slam','glim_ros','nav2_bringup']:
     print(name, get_package_share_directory(name))
 PY
     echo 'Workspace package lookup passed. Run ./scripts/validate.sh for full checks.'
@@ -71,29 +71,29 @@ echo "Setup log: $logfile"
 apt_safety=(--no-remove)
 if $allow_removals; then apt_safety=(); fi
 if $system; then
-  # Retire only the repository file written by earlier NIIHAN setup revisions.
-  if [[ -f /etc/apt/sources.list.d/niihan-ros2.list ]]; then
-    sudo rm /etc/apt/sources.list.d/niihan-ros2.list
+  # Retire only the repository file written by earlier WAREHOUSE setup revisions.
+  if [[ -f /etc/apt/sources.list.d/warehouse-ros2.list ]]; then
+    sudo rm /etc/apt/sources.list.d/warehouse-ros2.list
   fi
   sudo apt-get update -o APT::Update::Error-Mode=any
   sudo apt-get install -y "${apt_safety[@]}" curl ca-certificates gnupg software-properties-common
   sudo add-apt-repository -y universe
   # Configure official repositories only if the relevant package has no candidate.
-  if ! apt-cache show "ros-${NIIHAN_ROS_DISTRO}-ros-base" >/dev/null 2>&1; then
+  if ! apt-cache show "ros-${WAREHOUSE_ROS_DISTRO}-ros-base" >/dev/null 2>&1; then
     # Use ROS's official repository package, including its maintained signing keys.
     ros_source_version="$(curl -fsSL https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')"
     [[ "$ros_source_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-    curl -fL "https://github.com/ros-infrastructure/ros-apt-source/releases/download/$ros_source_version/ros2-apt-source_${ros_source_version}.${NIIHAN_UBUNTU_CODENAME}_all.deb" -o "$root/.setup/ros2-apt-source.deb"
+    curl -fL "https://github.com/ros-infrastructure/ros-apt-source/releases/download/$ros_source_version/ros2-apt-source_${ros_source_version}.${WAREHOUSE_UBUNTU_CODENAME}_all.deb" -o "$root/.setup/ros2-apt-source.deb"
     sudo dpkg -i "$root/.setup/ros2-apt-source.deb"
   fi
-  if [[ "$NIIHAN_ROS_DISTRO" == humble ]] && ! apt-cache show gz-harmonic >/dev/null 2>&1; then
+  if [[ "$WAREHOUSE_ROS_DISTRO" == humble ]] && ! apt-cache show gz-harmonic >/dev/null 2>&1; then
     curl -fsSL https://packages.osrfoundation.org/gazebo.gpg -o "$root/.setup/gazebo.gpg"
-    sudo install -m 644 "$root/.setup/gazebo.gpg" /usr/share/keyrings/niihan-gazebo-archive-keyring.gpg
-    printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/niihan-gazebo-archive-keyring.gpg] https://packages.osrfoundation.org/gazebo/ubuntu-stable jammy main' | sudo tee /etc/apt/sources.list.d/niihan-gazebo.list >/dev/null
+    sudo install -m 644 "$root/.setup/gazebo.gpg" /usr/share/keyrings/warehouse-gazebo-archive-keyring.gpg
+    printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/warehouse-gazebo-archive-keyring.gpg] https://packages.osrfoundation.org/gazebo/ubuntu-stable jammy main' | sudo tee /etc/apt/sources.list.d/warehouse-gazebo.list >/dev/null
   fi
   sudo apt-get update -o APT::Update::Error-Mode=any
   gazebo_packages=()
-  [[ "$NIIHAN_ROS_DISTRO" != humble ]] || gazebo_packages=(gz-harmonic)
+  [[ "$WAREHOUSE_ROS_DISTRO" != humble ]] || gazebo_packages=(gz-harmonic)
   build_packages=()
   if $source_build; then
     build_packages=(build-essential cmake git pkg-config python3-colcon-common-extensions python3-rosdep python3-pytest libeigen3-dev libboost-all-dev libopencv-dev)
@@ -103,15 +103,15 @@ if $system; then
     python3-numpy python3-scipy python3-yaml python3-aiohttp python3-websockets \
     python3-serial python3-opencv python3-psutil python3-pil nodejs ripgrep \
     libmetis-dev libfmt-dev libspdlog-dev libomp-dev \
-    ros-${NIIHAN_ROS_DISTRO}-ros-base ros-${NIIHAN_ROS_DISTRO}-navigation2 ros-${NIIHAN_ROS_DISTRO}-nav2-bringup \
-    "$NIIHAN_GZ_BRIDGE" "${gazebo_packages[@]}" ros-${NIIHAN_ROS_DISTRO}-rviz2 ros-${NIIHAN_ROS_DISTRO}-xacro \
-    ros-${NIIHAN_ROS_DISTRO}-robot-state-publisher ros-${NIIHAN_ROS_DISTRO}-joint-state-publisher \
-    ros-${NIIHAN_ROS_DISTRO}-robot-localization ros-${NIIHAN_ROS_DISTRO}-slam-toolbox ros-${NIIHAN_ROS_DISTRO}-octomap-server \
-    ros-${NIIHAN_ROS_DISTRO}-cv-bridge ros-${NIIHAN_ROS_DISTRO}-image-transport ros-${NIIHAN_ROS_DISTRO}-sensor-msgs-py \
-    ros-${NIIHAN_ROS_DISTRO}-rosbag2 ros-${NIIHAN_ROS_DISTRO}-teleop-twist-keyboard \
+    ros-${WAREHOUSE_ROS_DISTRO}-ros-base ros-${WAREHOUSE_ROS_DISTRO}-navigation2 ros-${WAREHOUSE_ROS_DISTRO}-nav2-bringup \
+    "$WAREHOUSE_GZ_BRIDGE" "${gazebo_packages[@]}" ros-${WAREHOUSE_ROS_DISTRO}-rviz2 ros-${WAREHOUSE_ROS_DISTRO}-xacro \
+    ros-${WAREHOUSE_ROS_DISTRO}-robot-state-publisher ros-${WAREHOUSE_ROS_DISTRO}-joint-state-publisher \
+    ros-${WAREHOUSE_ROS_DISTRO}-robot-localization ros-${WAREHOUSE_ROS_DISTRO}-slam-toolbox ros-${WAREHOUSE_ROS_DISTRO}-octomap-server \
+    ros-${WAREHOUSE_ROS_DISTRO}-cv-bridge ros-${WAREHOUSE_ROS_DISTRO}-image-transport ros-${WAREHOUSE_ROS_DISTRO}-sensor-msgs-py \
+    ros-${WAREHOUSE_ROS_DISTRO}-rosbag2 ros-${WAREHOUSE_ROS_DISTRO}-teleop-twist-keyboard \
     gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-plugins-good xdg-utils
 fi
-niihan_source_ros
+warehouse_source_ros
 source "$root/scripts/environment.sh"
 if ! $source_build; then
   "$root/scripts/install_binary.py" "$root"
@@ -127,7 +127,7 @@ if $clean; then
   rm -f "$root/.setup/build-profile"
   echo "Previous build preserved in $backup"
 fi
-if [[ -f "$root/.setup/build-profile" ]] && [[ "$(cat "$root/.setup/build-profile")" != "$NIIHAN_ROS_DISTRO" ]]; then
+if [[ -f "$root/.setup/build-profile" ]] && [[ "$(cat "$root/.setup/build-profile")" != "$WAREHOUSE_ROS_DISTRO" ]]; then
   echo 'Previous build uses a different ROS profile. Use ./setup.sh --clean or a separate clone.';exit 1
 fi
 if ! $reuse; then
@@ -138,12 +138,12 @@ fi
 source "$root/scripts/environment.sh"
 if $system; then
   [[ -f /etc/ros/rosdep/sources.list.d/20-default.list ]] || sudo rosdep init
-  rosdep update --rosdistro "$NIIHAN_ROS_DISTRO"
+  rosdep update --rosdistro "$WAREHOUSE_ROS_DISTRO"
   # Resolve only the supported dependency closure, excluding upstream system
   # tests that require Gazebo Classic (incompatible with this Harmonic profile).
-  source_paths=("$root/src/niihan_description" "$root/src/niihan_dashboard" "$root/src/niihan_bringup" "$root/src/niihan_slam" "$root/src/glim" "$root/src/glim_ros2")
-  targets=(niihan_slam)
-  if [[ "$NIIHAN_ROS_DISTRO" == humble ]]; then
+  source_paths=("$root/src/warehouse_description" "$root/src/warehouse_dashboard" "$root/src/warehouse_bringup" "$root/src/warehouse_slam" "$root/src/glim" "$root/src/glim_ros2")
+  targets=(warehouse_slam)
+  if [[ "$WAREHOUSE_ROS_DISTRO" == humble ]]; then
     source_paths+=("$root/src/navigation2" "$root/src/geometry2")
     targets+=(nav2_bringup tf2_ros)
   fi
@@ -153,9 +153,9 @@ if $system; then
   mapfile -t dependency_paths < "$root/.setup/dependency-paths.txt"
   [[ ${#dependency_paths[@]} -gt 0 ]]
   rosdep install --from-paths "${dependency_paths[@]}" \
-    --ignore-src --rosdistro "$NIIHAN_ROS_DISTRO" -y
+    --ignore-src --rosdistro "$WAREHOUSE_ROS_DISTRO" -y
 fi
-printf '%s\n' "$NIIHAN_ROS_DISTRO" > "$root/.setup/build-profile"
+printf '%s\n' "$WAREHOUSE_ROS_DISTRO" > "$root/.setup/build-profile"
 "$root/scripts/build_simulation.sh"
 "$root/scripts/validate.sh"
 printf '%s\n' "$(git -C "$root" rev-parse HEAD)" > "$root/.setup/validated-commit"

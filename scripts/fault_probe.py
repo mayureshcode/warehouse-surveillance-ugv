@@ -14,13 +14,13 @@ async def run():
     def log(kind,**data):
         row={'time':time.time(),'kind':kind,**data};rows.append(row);f.write(json.dumps(row)+'\n');f.flush()
     rclpy.init(); n=Node('release_fault_probe')
-    n.create_subscription(Twist,'/niihan/drive/cmd_vel',lambda m:log('drive',v=m.linear.x,w=m.angular.z),10)
-    n.create_subscription(String,'/niihan/health',lambda m:log('health',data=json.loads(m.data)),10)
+    n.create_subscription(Twist,'/warehouse/drive/cmd_vel',lambda m:log('drive',v=m.linear.x,w=m.angular.z),10)
+    n.create_subscription(String,'/warehouse/health',lambda m:log('health',data=json.loads(m.data)),10)
     def ground(m):
         p=m.pose.pose.position;truth.append((time.time(),p.x,p.y,p.z));log('truth',x=p.x,y=p.y,z=p.z)
     def path(m):
         points=[[p.pose.position.x,p.pose.position.y] for p in m.poses];paths.append(points);log('path',points=points)
-    n.create_subscription(Odometry,'/niihan/ground_truth',ground,qos_profile_sensor_data)
+    n.create_subscription(Odometry,'/warehouse/ground_truth',ground,qos_profile_sensor_data)
     n.create_subscription(NavPath,'/plan',path,10)
     async def spin():
         while rclpy.ok():
@@ -32,7 +32,7 @@ async def run():
         return bool(samples) and all(abs(r['v'])<1e-9 and abs(r['w'])<1e-9 for r in samples)
     def moved(start,end):return any(r['kind']=='drive' and start<r['time']<end and abs(r['v'])>.04 for r in rows)
     async def service(name,typ,request):
-        p=await asyncio.create_subprocess_exec('gz','service','-s','/world/niihan_construction_site/'+name,'--reqtype',typ,'--reptype','gz.msgs.Boolean','--timeout','3000','--req',request,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT)
+        p=await asyncio.create_subprocess_exec('gz','service','-s','/world/warehouse_construction_site/'+name,'--reqtype',typ,'--reptype','gz.msgs.Boolean','--timeout','3000','--req',request,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT)
         out=await p.communicate();log('service',name=name,request=request,output=out[0].decode(),exit=p.returncode)
         return p.returncode==0 and 'true' in out[0].decode()
     async with websockets.connect('ws://127.0.0.1:8081',max_size=30000000) as ws:

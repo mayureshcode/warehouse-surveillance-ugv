@@ -9,10 +9,10 @@ for arg in sys.argv[3:]:
 if probe_name not in ('acceptance','fault','obstacle'):raise ValueError('--probe must be acceptance, fault, or obstacle')
 probe=Path(__file__).parent/(probe_name+'_probe.py')
 workspace=Path(sys.argv[1]);root=Path(sys.argv[2]);root.mkdir(parents=True,exist_ok=False)
-env=os.environ.copy();env.update(GZ_PARTITION='niihan_'+root.name,ROS_DOMAIN_ID='61',ROS_HOME=str(root/'ros_home'),ROS_LOG_DIR=str(root/'ros'))
+env=os.environ.copy();env.update(GZ_PARTITION='warehouse_'+root.name,ROS_DOMAIN_ID='61',ROS_HOME=str(root/'ros_home'),ROS_LOG_DIR=str(root/'ros'))
 (root/'source.txt').write_text(subprocess.check_output(['git','-C',str(workspace),'rev-parse','HEAD'],text=True)+subprocess.check_output(['git','-C',str(workspace),'submodule','status'],text=True)+subprocess.check_output(['git','-C',str(workspace),'status','--short'],text=True))
 log=open(root/'launch.txt','w');record=open(root/'recorder.txt','w')
-launch=subprocess.Popen(['ros2','launch','niihan_slam','slam_simulation.launch.py','headless:=false','seed:=42','output_directory:='+str(root/'map')]+launch_args,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+launch=subprocess.Popen(['ros2','launch','warehouse_slam','slam_simulation.launch.py','headless:=false','seed:=42','output_directory:='+str(root/'map')]+launch_args,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
 video=subprocess.Popen(['gst-launch-1.0','-e','ximagesrc','display-name='+env.get('DISPLAY',':1'),'use-damage=false','show-pointer=true','do-timestamp=true','!','video/x-raw,framerate=15/1','!','videoconvert','!','vp8enc','deadline=1','cpu-used=8','threads=2','target-bitrate=3000000','!','webmmux','!','filesink','location='+str(root/'desktop.webm')],env=env,stdout=record,stderr=subprocess.STDOUT,start_new_session=True)
 exit_code=1
 try:

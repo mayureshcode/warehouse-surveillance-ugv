@@ -1,12 +1,12 @@
 > Superseded world geometry: the initial procedural scene duplicated the legacy layout. The corrected default now renders the supplied chunk5 meshes and adds a distinct 92-model site layout. Validation for the correction is recorded in WORLD_CORRECTION.md. Earlier map dimensions and three-repeat results apply only to the initial scene.
 
-# NIIHAN workspace validation — 3 October 2026
+# WAREHOUSE workspace validation — 3 October 2026
 
-Target: `/home/praj/niihan_ws`. Existing first-party and upstream source changes were preserved; no commit or push was made.
+Target: `/home/praj/warehouse_ws`. Existing first-party and upstream source changes were preserved; no commit or push was made.
 
 ## Changes
 
-- Imported the supplied construction assets and created `niihan_construction_site.sdf` as the default scene: fences, structural frame, machinery, storage materials, access road, dock and ground surfaces.
+- Imported the supplied construction assets and created `warehouse_construction_site.sdf` as the default scene: fences, structural frame, machinery, storage materials, access road, dock and ground surfaces.
 - Chose local visible procedural geometry. The supplied GLB world lacks visual geometry; its collision assets remain optional/local and are ignored for Git publication because their supplied license is proprietary.
 - Removed the external moving-obstacle model from the repeatable static baseline and enabled Contact/NavSat systems for simulated robot sensors.
 - Added seed and spawn controls, EGL rendering in headless mode, and one canonical simulation launch with a compatibility alias.
@@ -47,10 +47,10 @@ The final smoke observed 99 scans, 93 mast clouds and 31 maps over approximately
 ## Run
 
 ```bash
-cd /home/praj/niihan_ws
+cd /home/praj/warehouse_ws
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-ros2 launch niihan_description niihan_full_system.launch.py
+ros2 launch warehouse_description warehouse_full_system.launch.py
 ```
 
 Open the dashboard at `http://127.0.0.1:8080`. For server-only simulation add `headless:=true seed:=42 rqt_cam:=false`.

@@ -45,3 +45,25 @@ front_cam_bag/
 # Repeat simulation output; frozen published checkpoint evidence is intentional
 scripts/seaport_validation/runs/
 !docs/seaport_validation/results/**/maps/checkpoints/*.npz
+
+# Local build artifacts
+/build/
+/install/
+/log/
+/build_warehouse/
+/install_warehouse/
+/log_warehouse/
+
+# Python generated files
+__pycache__/
+*.pyc
+
+# Temporary backups
+*.backup
+*.before_glb
+*.before_waypoint_fix
+*.before_arrival_diagnostics
+*.before_wheel_arrival_fix
+
+# Local debugging
+/tmp/

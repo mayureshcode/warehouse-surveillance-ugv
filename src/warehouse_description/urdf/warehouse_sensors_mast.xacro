@@ -1,0 +1,136 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" xmlns:gz="http://gazebosim.org/schema">
+
+  <!-- ============================================================
+       Mast-mounted sensors: one forward RGB camera and 3D LiDAR.
+       Uses Gazebo Harmonic sensor definitions.
+       All topics are namespaced under /warehouse/sensors/... per
+       naming convention.
+       ============================================================ -->
+
+  <!-- ============ Single forward RGB camera ============ -->
+  <xacro:macro name="warehouse_ring_camera" params="suffix yaw_deg">
+    <link name="camera_${suffix}_link">
+      
+      <collision><geometry><box size="0.03 0.03 0.03"/></geometry></collision>
+      <xacro:box_inertia mass="0.05" x="0.03" y="0.03" z="0.03"/>
+    </link>
+    <joint name="camera_${suffix}_joint" type="fixed">
+      <parent link="mast_head_link"/>
+      <child link="camera_${suffix}_link"/>
+      <origin xyz="0.09 0 0.02" rpy="0 0 ${yaw_deg * pi / 180.0}"/>
+    </joint>
+    <xacro:if value="${suffix == 'front' or xacro.arg('minimal_sensors') == 'false'}">
+<gazebo reference="camera_${suffix}_link">
+      <sensor type="camera" name="camera_${suffix}_sensor">
+        <pose>0 0 0 3.1415926535 0 0</pose>
+        <always_on>1</always_on>
+        <update_rate>15.0</update_rate>
+        <topic>/warehouse/sensors/panoramic/${suffix}/image_raw</topic>
+        <gz:frame_id>camera_${suffix}_link</gz:frame_id>
+        <camera name="${suffix}">
+          <horizontal_fov>1.57</horizontal_fov>
+          <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+          <clip><near>0.05</near><far>50</far></clip>
+        </camera>
+      </sensor>
+    </gazebo>
+</xacro:if>
+  </xacro:macro>
+
+  <xacro:warehouse_ring_camera suffix="front" yaw_deg="0"/>
+
+  <!-- ============ 3D 360 LiDAR (SLAM/localisation + obstacle detection) ============ -->
+  <link name="mast_lidar_link">
+    
+    <collision><geometry><cylinder radius="0.045" length="0.06"/></geometry></collision>
+    <xacro:cylinder_inertia mass="0.25" r="0.045" h="0.06"/>
+  </link>
+  <joint name="mast_lidar_joint" type="fixed">
+    <parent link="mast_head_link"/>
+    <child link="mast_lidar_link"/>
+    <origin xyz="0 0 0.12" rpy="0 0 0"/>
+  </joint>
+  <xacro:unless value="$(arg minimal_sensors)">
+<gazebo reference="mast_lidar_link">
+    <sensor type="gpu_lidar" name="lidar_3d_sensor">
+      <always_on>1</always_on>
+      <update_rate>10.0</update_rate>
+      <topic>/warehouse/sensors/lidar</topic>
+      <gz:frame_id>mast_lidar_link</gz:frame_id>
+      <lidar>
+        <scan>
+          <horizontal><samples>360</samples><resolution>1</resolution><min_angle>-3.14159</min_angle><max_angle>3.14159</max_angle></horizontal>
+          <vertical><samples>64</samples><resolution>1</resolution><min_angle>-0.12217</min_angle><max_angle>0.90757</max_angle></vertical>
+        </scan>
+        <range><min>0.2</min><max>60.0</max><resolution>0.01</resolution></range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </lidar>
+    </sensor>
+  </gazebo>
+</xacro:unless>
+
+
+  <!-- ============ REAR SENSOR CLUSTER ============ -->
+  <link name="antenna_link">
+    
+  </link>
+  <joint name="antenna_joint" type="fixed">
+    <parent link="mast_link"/>
+    <child link="antenna_link"/>
+    <origin xyz="-0.05 0 ${mast_height}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="speaker_link">
+    
+  </link>
+  <joint name="speaker_joint" type="fixed">
+    <parent link="mast_link"/>
+    <child link="speaker_link"/>
+    <origin xyz="-0.05 0 ${mast_height - 0.05}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="unitree_l2_link">
+    
+    <collision>
+      <geometry><cylinder radius="0.0375" length="0.065"/></geometry>
+    </collision>
+    <xacro:cylinder_inertia mass="0.23" r="0.0375" h="0.065"/>
+  </link>
+  <joint name="unitree_l2_joint" type="fixed">
+    <parent link="mast_link"/>
+    <child link="unitree_l2_link"/>
+    <origin xyz="-0.1 0 ${mast_height - 0.1}" rpy="0 0 0"/>
+  </joint>
+  <gazebo reference="unitree_l2_link">
+    <sensor type="gpu_lidar" name="unitree_l2_sensor">
+      <always_on>1</always_on>
+      <update_rate>10.0</update_rate>
+      <topic>/warehouse/sensors/unitree_lidar</topic>
+      <gz:frame_id>unitree_l2_link</gz:frame_id>
+      <lidar>
+        <scan>
+          <horizontal>
+            <samples>${360 if xacro.arg('minimal_sensors') == 'true' else 560}</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>${32 if xacro.arg('minimal_sensors') == 'true' else 140}</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.12217</min_angle>
+            <max_angle>1.5708</max_angle>
+          </vertical>
+        </scan>
+        <range><min>0.05</min><max>30.0</max><resolution>0.0045</resolution></range>
+      </lidar>
+    </sensor>
+  </gazebo>
+
+
+</robot>

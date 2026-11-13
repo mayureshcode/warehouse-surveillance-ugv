@@ -24,7 +24,7 @@ def verify_extract(archive,checksum,stage,expected):
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('workspace',type=Path);p.add_argument('--archive',type=Path);p.add_argument('--checksum');a=p.parse_args()
-    r=a.workspace.resolve();distro=os.environ['NIIHAN_ROS_DISTRO'];ubuntu={'humble':'22.04','jazzy':'24.04'}[distro]
+    r=a.workspace.resolve();distro=os.environ['WAREHOUSE_ROS_DISTRO'];ubuntu={'humble':'22.04','jazzy':'24.04'}[distro]
     assert platform.machine()=='x86_64'
     commit=subprocess.check_output(['git','-C',str(r),'rev-parse','HEAD'],text=True).strip()
     expected={'source_commit':commit,'ubuntu':ubuntu,'ros_distro':distro,'architecture':'amd64','python':f'{os.sys.version_info.major}.{os.sys.version_info.minor}'}
@@ -32,7 +32,7 @@ def main():
     if a.archive:
         archive=a.archive.resolve();checksum=a.checksum or archive.with_name(archive.name+'.sha256').read_text().split()[0]
     else:
-        name=f'niihan-ubuntu{ubuntu}-{distro}-amd64.tar.gz';base=f'https://github.com/Im-praj/niihan_ws/releases/download/binaries-{commit}/'
+        name=f'warehouse-ubuntu{ubuntu}-{distro}-amd64.tar.gz';base=f'https://github.com/Im-praj/warehouse_ws/releases/download/binaries-{commit}/'
         archive=cache/name
         try:
             for file in [name+'.sha256',name]:

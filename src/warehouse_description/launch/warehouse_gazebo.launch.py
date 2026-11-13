@@ -1,0 +1,443 @@
+#!/usr/bin/env python3
+"""Launch WAREHOUSE, construction-site simulation, sensors, mapping and navigation."""
+
+import os
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, SetEnvironmentVariable, TimerAction
+from launch.conditions import IfCondition, UnlessCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution, PythonExpression
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+from launch_ros.substitutions import FindPackageShare
+
+
+def generate_launch_description():
+    pkg_description = get_package_share_directory('warehouse_description')
+    use_sim_time = LaunchConfiguration('use_sim_time')
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time', default_value='true',
+        description='Use the same ROS clock for simulation, mapping and navigation',
+    )
+    xacro_file = PathJoinSubstitution([
+        pkg_description,
+        'urdf',
+        LaunchConfiguration('robot_xacro')
+    ])
+
+    robot_description = ParameterValue(
+        Command(['xacro ', xacro_file, ' minimal_sensors:=', LaunchConfiguration('minimal_sensors')]), value_type=str)
+
+    world_arg = DeclareLaunchArgument(
+        'world',
+        default_value='warehouse_construction_site.sdf',
+        description='Gazebo world file to load (relative to warehouse_description/worlds)',
+    )
+
+    headless_arg = DeclareLaunchArgument(
+        'headless',
+        default_value='false',
+        description='Run Gazebo Harmonic in headless mode',
+    )
+
+    patrol_arg = DeclareLaunchArgument(
+        'patrol',
+        default_value='false',
+        description='Run autonomous patrol node',
+    )
+
+    mapping_arg = DeclareLaunchArgument(
+        'mapping',
+        default_value='true',
+        description='Run online 2D SLAM mapping via slam_toolbox',
+    )
+
+
+    launch_nav2_arg = DeclareLaunchArgument(
+        'launch_nav2',
+        default_value='true',
+        description='Run Nav2 stack',
+    )
+    octomap_arg = DeclareLaunchArgument(
+        'octomap',
+        default_value='false',
+        description='Run 3D OctoMap mapping from the 3D LiDAR (legacy, default: false)',
+    )
+    vortex_3d_arg = DeclareLaunchArgument(
+        'vortex_3d',
+        default_value='true',
+        description='Run Vortex 3D point cloud mapper (default: true)',
+    )
+    cliff_detect_arg = DeclareLaunchArgument(
+        'cliff_detect',
+        default_value='true',
+        description='Run cliff/no-ground detector (default: true)',
+    )
+    rqt_cam_arg = DeclareLaunchArgument(
+        'rqt_cam',
+        default_value='false',
+        description='Launch rqt_image_view for live front camera stream',
+    )
+
+    # Set Gazebo resource paths to resolve meshes, models, and ROS package URIs
+    gz_resource_path = SetEnvironmentVariable(
+        name='GZ_SIM_RESOURCE_PATH',
+        value=[
+            os.path.join(pkg_description, '..'),
+            ':',
+            pkg_description,
+            ':',
+            os.path.join(pkg_description, 'models'),
+            ':',
+            os.environ.get('GZ_SIM_RESOURCE_PATH', '')
+        ]
+    )
+
+    ign_resource_path = SetEnvironmentVariable(
+        name='IGN_GAZEBO_RESOURCE_PATH',
+        value=[
+            os.path.join(pkg_description, '..'),
+            ':',
+            pkg_description,
+            ':',
+            os.path.join(pkg_description, 'models'),
+            ':',
+            os.environ.get('IGN_GAZEBO_RESOURCE_PATH', '')
+        ]
+    )
+
+    world_path = PathJoinSubstitution([
+        FindPackageShare('warehouse_description'), 'worlds', LaunchConfiguration('world'),
+    ])
+
+    # Gazebo Sim launch via ros_gz_sim: world file must be first positional argument
+    gz_args_sub = PythonExpression([
+        "'", world_path, " -s -r --seed ", LaunchConfiguration('seed'), "' if '", LaunchConfiguration('headless'), "' == 'false' else '", world_path, " -s -r --headless-rendering --seed ", LaunchConfiguration('seed'), "'"
+    ])
+
+    log_world_path = LogInfo(
+        msg=['[warehouse_gazebo] Resolved world_path: ', world_path]
+    )
+    log_gz_args = LogInfo(
+        msg=['[warehouse_gazebo] Final gz_args: ', gz_args_sub]
+    )
+
+    gz_sim = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare('ros_gz_sim'),
+                'launch',
+                'gz_sim.launch.py'
+            ])
+        ),
+        launch_arguments={
+            'gz_args': gz_args_sub,
+        }.items(),
+    )
+
+    # Keep a visible GUI, but start it separately from the server. Combined
+    # Gazebo startup intermittently hung before advertising any world service.
+    gz_gui = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([
+            FindPackageShare('ros_gz_sim'), 'launch', 'gz_sim.launch.py'])),
+        launch_arguments={'gz_args':'-g'}.items(),
+        condition=UnlessCondition(LaunchConfiguration('headless')),
+    )
+
+    robot_state_publisher_node = Node(
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='screen',
+        parameters=[{
+            'robot_description': robot_description,
+            'use_sim_time': use_sim_time,
+        }],
+    )
+
+    spawn_entity = Node(
+        package='ros_gz_sim',
+        executable='create',
+        arguments=[
+            '-name', LaunchConfiguration('robot_name'),
+            '-topic', '/robot_description',
+            '-x', LaunchConfiguration('spawn_x'),
+            '-y', LaunchConfiguration('spawn_y'),
+            '-z', LaunchConfiguration('spawn_z'),
+            '-Y', LaunchConfiguration('spawn_yaw'),
+        ],
+        parameters=[{'use_sim_time': use_sim_time}],
+        output='screen',
+    )
+
+    # ROS <-> Gazebo Harmonic bridge
+    bridge_node = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        parameters=[{'use_sim_time': use_sim_time}],
+        remappings=[('/warehouse/sensors/lidar/points', PythonExpression(["'/warehouse/legacy/lidar/points' if '", LaunchConfiguration('external_stack'), "' == 'true' else '/warehouse/sensors/lidar/points'"])), ('/odom', PythonExpression(["'/warehouse/wheel/odom' if '", LaunchConfiguration('external_stack'), "' == 'true' else '/odom'"])),
+                    ('/warehouse/gnss/fix', PythonExpression(["'/warehouse/raw/gnss/fix' if '", LaunchConfiguration('external_stack'), "' == 'true' else '/warehouse/gnss/fix'"]))],
+        arguments=[
+            # Clock & TF
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+
+            # Actuation and Odometry
+            '/warehouse/gazebo_cmd_vel@geometry_msgs/msg/Twist@gz.msgs.Twist',
+                        '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/warehouse/ground_truth@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/joint_states@sensor_msgs/msg/JointState[gz.msgs.Model',
+
+            # LiDARs
+            '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+            '/scan/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+            '/warehouse/sensors/lidar/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+
+            # IMU & GNSS
+            '/warehouse/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU',
+            '/warehouse/gnss/fix@sensor_msgs/msg/NavSatFix[gz.msgs.NavSat',
+
+            # Proximity and Bumper
+            '/warehouse/proximity/front_range@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+            '/warehouse/proximity/rear_range@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+            '/warehouse/bumper/contact@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts',
+
+
+            # Unitree L2
+            '/warehouse/sensors/unitree_lidar@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+            '/warehouse/sensors/unitree_lidar/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked',
+
+            # Single forward RGB camera
+            '/warehouse/sensors/panoramic/front/image_raw@sensor_msgs/msg/Image[gz.msgs.Image',
+            '/warehouse/sensors/panoramic/front/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo',
+
+        ],
+        output='screen',
+    )
+
+    command_arbiter_node = Node(
+        package='warehouse_description',
+        executable='command_arbiter',
+        condition=UnlessCondition(LaunchConfiguration('external_stack')),
+        name='command_arbiter',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+    )
+
+    differential_drive_controller = Node(
+        package='warehouse_description',
+        executable='differential_drive_controller',
+        condition=UnlessCondition(LaunchConfiguration('external_stack')),
+        name='differential_drive_controller',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'wheel_radius': 0.125,
+            'track_width': 0.525,
+            'max_wheel_velocity': 10.0,
+        }],
+    )
+
+    # 2D SLAM mapping node (slam_toolbox)
+    slam_params_file = os.path.join(pkg_description, 'config', 'slam_toolbox_params.yaml')
+    scan_tf_gate_node = Node(
+        package='warehouse_description', executable='scan_tf_gate',
+        name='scan_tf_gate', output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+        condition=IfCondition(LaunchConfiguration('mapping')),
+    )
+
+    slam_toolbox_node = Node(
+        package='slam_toolbox',
+        executable='async_slam_toolbox_node',
+        name='slam_toolbox',
+        output='screen',
+        parameters=[
+            slam_params_file,
+            {'use_sim_time': use_sim_time}
+        ],
+        condition=IfCondition(LaunchConfiguration('mapping')),
+    )
+
+    # Lifecycle manager to activate slam_toolbox (publishes map->odom TF)
+    # Autonomous raceway patrol controller (track loop + obstacle avoidance)
+    patrol_controller_node = Node(
+        package='warehouse_description',
+        executable='patrol_controller',
+        name='patrol_controller',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+        condition=IfCondition(LaunchConfiguration('patrol')),
+    )
+
+    patrol_controller_timer = TimerAction(
+        period=4.0,
+        actions=[patrol_controller_node],
+    )
+
+    # Optional live camera viewer
+    rqt_image_view_node = Node(
+        package='rqt_image_view',
+        executable='rqt_image_view',
+        name='rqt_image_view',
+        output='screen',
+        arguments=['/warehouse/sensors/panoramic/front/image_raw'],
+        parameters=[{'use_sim_time': use_sim_time}],
+        condition=IfCondition(LaunchConfiguration('rqt_cam')),
+    )
+
+    octomap_node = Node(
+        package='octomap_server',
+        executable='octomap_server_node',
+        name='octomap_server',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'resolution': 0.08,
+            'frame_id': 'map',
+            'sensor_model/max_range': 25.0,
+            'sensor_model/hit': 0.7,
+            'sensor_model/miss': 0.4,
+            'sensor_model/min': 0.12,
+            'sensor_model/max': 0.97,
+            'filter_ground': False,
+            'pointcloud_min_z': -1.0,
+            'pointcloud_max_z': 10.0,
+            'occupancy_min_z': 0.05,
+            'occupancy_max_z': 3.0,
+        }],
+        remappings=[
+            ('cloud_in', '/warehouse/sensors/lidar/points'),
+        ],
+        condition=IfCondition(LaunchConfiguration('octomap')),
+    )
+
+    # Vortex 3D Point Cloud Mapper (replaces OctoMap)
+    vortex_3d_mapper_node = Node(
+        package='warehouse_description',
+        executable='vortex_3d_mapper',
+        name='vortex_3d_mapper',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'voxel_resolution': 0.05,
+            'max_range': 25.0,
+            'min_range': 0.5,
+            'publish_rate': 1.0,
+            'save_interval': 30.0,
+            'map_frame': 'map',
+            'max_points': 5000000,
+            'downsample_resolution': 0.15,
+        }],
+        condition=IfCondition(LaunchConfiguration('vortex_3d')),
+    )
+
+    # Cliff / No-Ground Detector
+    cliff_detector_node = Node(
+        package='warehouse_description',
+        executable='cliff_detector',
+        name='cliff_detector',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'ground_height_threshold': 0.15,
+            'vertical_fov_min': -0.12217,
+            'vertical_fov_max': 0.90757,
+            'robot_exclusion_radius': 0.45,
+            'cliff_check_radius': 6.0,
+            'cell_size': 0.5,
+            'min_ground_points': 3,
+            'scan_range': 6.0,
+            'publish_rate': 5.0,
+            'robot_frame': 'base_footprint',
+            'lidar_topic': '/warehouse/sensors/lidar/points',
+        }],
+        condition=IfCondition(LaunchConfiguration('cliff_detect')),
+    )
+
+    static_tf_lidar = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf_lidar_alias',
+        arguments=[
+            '--x', '0', '--y', '0', '--z', '0',
+            '--roll', '0', '--pitch', '0', '--yaw', '0',
+            '--frame-id', 'chassis_lidar_link',
+            '--child-frame-id', 'warehouse/base_footprint/lidar_sensor',
+        ],
+        parameters=[{'use_sim_time': use_sim_time}],
+    )
+
+    static_tf_lidar_3d = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf_lidar_3d_alias',
+        arguments=[
+            '--x', '0', '--y', '0', '--z', '0',
+            '--roll', '0', '--pitch', '0', '--yaw', '0',
+            '--frame-id', 'mast_lidar_link',
+            '--child-frame-id', 'warehouse/base_footprint/lidar_3d_sensor',
+        ],
+        parameters=[{'use_sim_time': use_sim_time}],
+    )
+
+    nav2_group = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_description, 'launch', 'warehouse_navigation.launch.py')
+        ),
+        launch_arguments={'use_sim_time': use_sim_time}.items(),
+        condition=IfCondition(LaunchConfiguration('launch_nav2')),
+    )
+
+    return LaunchDescription([
+        use_sim_time_arg,
+        gz_resource_path,
+        ign_resource_path,
+        world_arg,
+        DeclareLaunchArgument('external_stack', default_value='false'),
+        DeclareLaunchArgument('minimal_sensors', default_value='false'),
+        DeclareLaunchArgument('seed', default_value='42'),
+        DeclareLaunchArgument(
+            'robot_xacro',
+            default_value='warehouse.urdf.xacro'
+        ),
+        DeclareLaunchArgument(
+            'robot_name',
+            default_value='warehouse'
+        ),
+        DeclareLaunchArgument('spawn_x', default_value='-12.0'),
+        DeclareLaunchArgument('spawn_y', default_value='0.0'),
+        DeclareLaunchArgument('spawn_z', default_value='0.15'),
+        DeclareLaunchArgument('spawn_yaw', default_value='0.0'),
+        headless_arg,
+        patrol_arg,
+        mapping_arg,
+        launch_nav2_arg,
+        octomap_arg,
+        vortex_3d_arg,
+        cliff_detect_arg,
+        rqt_cam_arg,
+        log_world_path,
+        log_gz_args,
+        gz_sim,
+        TimerAction(period=1.0, actions=[gz_gui]),
+        robot_state_publisher_node,
+        spawn_entity,
+        bridge_node,
+        Node(package='ros_gz_bridge', executable='parameter_bridge',
+             name='gazebo_tf_bridge', arguments=['/tf@tf2_msgs/msg/TFMessage[gz.msgs.Pose_V'],
+             parameters=[{'use_sim_time': use_sim_time}],
+             condition=UnlessCondition(LaunchConfiguration('external_stack'))),
+        command_arbiter_node,
+        differential_drive_controller,
+        static_tf_lidar,
+        static_tf_lidar_3d,
+        scan_tf_gate_node,
+        slam_toolbox_node,
+        octomap_node,
+        vortex_3d_mapper_node,
+        cliff_detector_node,
+        nav2_group,
+        patrol_controller_timer,
+        rqt_image_view_node,
+    ])

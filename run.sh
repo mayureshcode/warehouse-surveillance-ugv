@@ -5,10 +5,10 @@ if [[ "${1:-}" == --help ]]; then
   echo 'Usage: ./run.sh [ROS launch arguments, e.g. seed:=42]'
   echo 'Launches visible Gazebo, RViz and dashboard. Headless mode is not supported here.';exit 0
 fi
-if [[ "${NIIHAN_RUN_CLEAN_ENV:-}" != 1 ]]; then
+if [[ "${WAREHOUSE_RUN_CLEAN_ENV:-}" != 1 ]]; then
   exec env -u AMENT_PREFIX_PATH -u COLCON_PREFIX_PATH -u CMAKE_PREFIX_PATH \
     -u PYTHONPATH -u LD_LIBRARY_PATH -u ROS_DISTRO -u ROS_VERSION \
-    NIIHAN_RUN_CLEAN_ENV=1 \
+    WAREHOUSE_RUN_CLEAN_ENV=1 \
     bash --noprofile --norc "$root/run.sh" "$@"
 fi
 [[ -n "${DISPLAY:-}" ]] || { echo 'No DISPLAY. Run from a graphical desktop session.' >&2;exit 1; }
@@ -19,16 +19,16 @@ for arg in "$@"; do
   case "$arg" in headless:=*|rviz:=*) echo 'run.sh keeps Gazebo and RViz visible; remove that override.';exit 2;; esac
 done
 source "$root/scripts/platform.sh"
-niihan_select_platform
-niihan_source_ros
-if [[ -f "$root/.setup/build-profile" ]] && [[ "$(cat "$root/.setup/build-profile")" != "$NIIHAN_ROS_DISTRO" ]]; then
+warehouse_select_platform
+warehouse_source_ros
+if [[ -f "$root/.setup/build-profile" ]] && [[ "$(cat "$root/.setup/build-profile")" != "$WAREHOUSE_ROS_DISTRO" ]]; then
   echo 'Build profile differs from the native ROS version. Rerun ./setup.sh --clean.' >&2;exit 1
 fi
 source "$root/scripts/environment.sh"
 source "$root/install/local_setup.bash"
 python3 - <<'PY'
 from ament_index_python.packages import get_package_share_directory
-for name in ['niihan_slam','niihan_dashboard','glim_ros','ros_gz_sim','nav2_bringup']:
+for name in ['warehouse_slam','warehouse_dashboard','glim_ros','ros_gz_sim','nav2_bringup']:
     get_package_share_directory(name)
 PY
 python3 - <<'PY'
@@ -55,4 +55,4 @@ if command -v xdg-open >/dev/null; then
   browser_wait=$!
   trap 'kill "$browser_wait" 2>/dev/null || true' EXIT
 fi
-ros2 launch niihan_slam slam_simulation.launch.py headless:=false rviz:=true "$@"
+ros2 launch warehouse_slam slam_simulation.launch.py headless:=false rviz:=true "$@"

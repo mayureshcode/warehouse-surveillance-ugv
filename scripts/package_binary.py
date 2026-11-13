@@ -12,7 +12,7 @@ stage=out/'stage'
 if stage.exists():raise SystemExit(f'Stage already exists: {stage}. Use a new output directory.')
 stage.mkdir();shutil.copytree(r/'install',stage/'install',symlinks=False)
 # Optional privately licensed geometry never belongs in a public runtime bundle.
-for folder in (stage/'install').glob('*/share/niihan_description/models/construction_site_chunk5'):
+for folder in (stage/'install').glob('*/share/warehouse_description/models/construction_site_chunk5'):
  shutil.rmtree(folder)
 libs=stage/'deps/lib';libs.mkdir(parents=True)
 # Collect non-distribution shared library dependencies, including transitive ones.
@@ -54,7 +54,7 @@ for name in ['gtsam','gtsam_points']:
 commit=subprocess.check_output(['git','-C',str(r),'rev-parse','HEAD'],text=True).strip()
 manifest={'schema':1,'source_commit':commit,'ubuntu':ubuntu,'ros_distro':distro,'architecture':'amd64','python':f'{os.sys.version_info.major}.{os.sys.version_info.minor}','packages':sorted(f.name for f in (stage/'install/share/colcon-core/packages').glob('*')) if (stage/'install/share/colcon-core/packages').exists() else sorted(f.name for f in (stage/'install').iterdir() if f.is_dir()),'submodules':subprocess.check_output(['git','-C',str(r),'submodule','status'],text=True),'build_type':'CPU, viewer off, march_native off','runtime_acceptance':'not certified by packaging alone'}
 (stage/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
-archive=out/f'niihan-ubuntu{ubuntu}-{distro}-amd64.tar.gz'
+archive=out/f'warehouse-ubuntu{ubuntu}-{distro}-amd64.tar.gz'
 with tarfile.open(archive,'w:gz') as t:
  for child in sorted(stage.iterdir()):t.add(child,arcname=child.name)
 h=hashlib.sha256(archive.read_bytes()).hexdigest();archive.with_name(archive.name+'.sha256').write_text(h+'  '+archive.name+'\n')

@@ -1,4 +1,4 @@
-# NIIHAN rover: 3D SLAM and Nav2
+# WAREHOUSE rover: 3D SLAM and Nav2
 
 ROS 2 Humble / Gazebo Harmonic simulation with GLIM CPU LiDAR-inertial SLAM, a projected occupancy grid, Nav2 waypoint missions and a local browser dashboard. The portable simulation uses a simplified L2-like GPU LiDAR (360 × 32 rays at 10 Hz) and chassis IMU. It is a simulation model, not a validated physical L2 driver/calibration.
 
@@ -6,10 +6,10 @@ ROS 2 Humble / Gazebo Harmonic simulation with GLIM CPU LiDAR-inertial SLAM, a p
 
 | Path | Role |
 |---|---|
-| `src/niihan_description` | Robot, portable world, Gazebo bridges, arbitration |
-| `src/niihan_bringup` | Sensor contracts, drive/sensor health, e-stop/watchdog, hardware hooks |
-| `src/niihan_slam` | GLIM CPU configuration, map projection/save, planar TF, experimental map localization, RViz |
-| `src/niihan_dashboard` | Local browser GUI, live camera, 3D/2D maps and missions |
+| `src/warehouse_description` | Robot, portable world, Gazebo bridges, arbitration |
+| `src/warehouse_bringup` | Sensor contracts, drive/sensor health, e-stop/watchdog, hardware hooks |
+| `src/warehouse_slam` | GLIM CPU configuration, map projection/save, planar TF, experimental map localization, RViz |
+| `src/warehouse_dashboard` | Local browser GUI, live camera, 3D/2D maps and missions |
 | `src/glim`, `src/glim_ros2`, `src/navigation2`, `src/geometry2` | Pinned upstream source submodules |
 | `scripts`, `patches`, `docs` | Build/validation/evidence tooling, compatibility fixes and operating instructions |
 
@@ -35,8 +35,8 @@ On Ubuntu 22.04 or 24.04 amd64 with a graphical desktop:
 ```bash
 sudo apt-get install git-lfs
 git lfs install
-git clone --recurse-submodules --branch feat/l2-3d-slam-release https://github.com/Im-praj/niihan_ws.git
-cd niihan_ws
+git clone --recurse-submodules --branch feat/l2-3d-slam-release https://github.com/Im-praj/warehouse_ws.git
+cd warehouse_ws
 git lfs pull
 ./setup.sh --source
 ./run.sh
@@ -53,8 +53,8 @@ If already cloned, use `git pull --ff-only origin feat/l2-3d-slam-release` follo
 ```bash
 sudo apt-get install git-lfs
 git lfs install
-git clone --recurse-submodules --branch feat/l2-3d-slam-release https://github.com/Im-praj/niihan_ws.git
-cd niihan_ws
+git clone --recurse-submodules --branch feat/l2-3d-slam-release https://github.com/Im-praj/warehouse_ws.git
+cd warehouse_ws
 git lfs pull
 ./setup.sh --source
 ./run.sh
@@ -66,7 +66,7 @@ Submodule commits are pinned by Git and `.gitmodules` supplies public URLs. The 
 
 ```bash
 source install/setup.bash
-ros2 launch niihan_slam slam_simulation.launch.py \
+ros2 launch warehouse_slam slam_simulation.launch.py \
   headless:=false seed:=42 output_directory:=$HOME/evidence/current-map
 ```
 
@@ -78,20 +78,20 @@ The default portable world uses distributable primitive geometry. The detailed c
 
 ## Data flow
 
-L2-model 3D cloud + IMU → GLIM 3D odometry/local/global mapping → estimated full 3D `map → odom → base_footprint`, plus planar `odom → base_nav` for Nav2 → occupancy projection + gravity-filtered scan → Nav2 → command arbiter → health/e-stop/watchdog gateway → Gazebo drive. Wheel odometry is used for drive health only. `/niihan/ground_truth` is an isolated evaluation topic and is never an estimator input or navigation TF publisher.
+L2-model 3D cloud + IMU → GLIM 3D odometry/local/global mapping → estimated full 3D `map → odom → base_footprint`, plus planar `odom → base_nav` for Nav2 → occupancy projection + gravity-filtered scan → Nav2 → command arbiter → health/e-stop/watchdog gateway → Gazebo drive. Wheel odometry is used for drive health only. `/warehouse/ground_truth` is an isolated evaluation topic and is never an estimator input or navigation TF publisher.
 
-Vortex is a cloud serialization helper here; it is not the SLAM estimator. Nav2 plans on a 2D grid derived from 3D geometry. This flat-site profile is not a slope, overhang or drop-off traversability system. The separate hardware stack is documented in [commissioning](src/niihan_bringup/COMMISSIONING.md).
+Vortex is a cloud serialization helper here; it is not the SLAM estimator. Nav2 plans on a 2D grid derived from 3D geometry. This flat-site profile is not a slope, overhang or drop-off traversability system. The separate hardware stack is documented in [commissioning](src/warehouse_bringup/COMMISSIONING.md).
 
 ## Save once and reuse
 
 ```bash
-ros2 service call /niihan/slam/save_map std_srvs/srv/Trigger '{}'
+ros2 service call /warehouse/slam/save_map std_srvs/srv/Trigger '{}'
 ```
 
-This writes an immutable checkpoint, atomically updates `current.json`, and exports `map_3d.npz`, `map.pgm` and `map.yaml` to the selected output directory. The new default `mode:=auto` first maps and later reuses the current checkpoint under `~/.local/share/niihan/maps/<environment_id>`. It checks the world hash; changing a world requires a new environment ID. Use `mode:=mapping` for a fresh benchmark map. Explicit output directories can be reused with `map_file`; automatic discovery uses the environment directory. Stop the mapping launch before starting localization:
+This writes an immutable checkpoint, atomically updates `current.json`, and exports `map_3d.npz`, `map.pgm` and `map.yaml` to the selected output directory. The new default `mode:=auto` first maps and later reuses the current checkpoint under `~/.local/share/warehouse/maps/<environment_id>`. It checks the world hash; changing a world requires a new environment ID. Use `mode:=mapping` for a fresh benchmark map. Explicit output directories can be reused with `map_file`; automatic discovery uses the environment directory. Stop the mapping launch before starting localization:
 
 ```bash
-ros2 launch niihan_slam slam_simulation.launch.py \
+ros2 launch warehouse_slam slam_simulation.launch.py \
   mode:=localization map_file:=$HOME/evidence/current-map/map_3d.npz \
   headless:=false seed:=42 initial_x:=0.0 initial_y:=0.0 initial_yaw:=0.0
 ```
@@ -115,7 +115,7 @@ The 3D navigation behavior tree checks position arrival on every tick before rep
 
 ## Cloud and vehicle pose contract
 
-Every rendered `/niihan/slam/map_cloud` packet carries `frame_id`, `stamp`, `pose_stamp` and the vehicle pose (`x`, `y`, `z`, `yaw`, `roll`, `pitch`). The dashboard resolves `map → base_footprint` at the cloud timestamp, not the latest TF. A cloud without a matching transform is withheld. The 3D label displays that cloud's timestamp and X/Y/θ; the telemetry panel separately shows the current live pose. Angles are radians in messages and degrees in the GUI. The actual URDF model follows full roll/pitch/yaw and live wheel/suspension joints.
+Every rendered `/warehouse/slam/map_cloud` packet carries `frame_id`, `stamp`, `pose_stamp` and the vehicle pose (`x`, `y`, `z`, `yaw`, `roll`, `pitch`). The dashboard resolves `map → base_footprint` at the cloud timestamp, not the latest TF. A cloud without a matching transform is withheld. The 3D label displays that cloud's timestamp and X/Y/θ; the telemetry panel separately shows the current live pose. Angles are radians in messages and degrees in the GUI. The actual URDF model follows full roll/pitch/yaw and live wheel/suspension joints.
 
 The cloud is an accumulated map snapshot, normally published at 1 Hz and reduced to the browser's point budget. This is not a promise to send every raw L2 scan to a browser. Raw 3D scans and IMU feed GLIM independently of browser updates. Saved-map snapshots use the last accepted registration timestamp. A single forward RGB camera is bridged directly in simulation; the common adapter does not relay it back into its input.
 
@@ -142,7 +142,7 @@ The acceptance trajectory uses Gazebo world pose only for evaluation. XYZ displa
 
 ## Physical L2 commissioning boundary
 
-The verified GLIM profile is `niihan_slam/slam_simulation.launch.py`. The older `niihan_bringup/niihan_hardware.launch.py` starts the legacy EKF/slam_toolbox application; it is not the GLIM 3D hardware profile. Physical L2 operation is not certified by these simulation runs. Real point timestamps/deskew, LiDAR-to-IMU extrinsics, IMU source/bias/gravity, serial/network driver settings and motor calibration must be measured on the actual rover before a hardware GLIM profile is accepted. The supplied `global_shutter=true` and chassis-IMU configuration describe the simulation sensor, not a physical L2 calibration. Ground-height projection is a flat-site baseline and does not certify slopes or drop-offs.
+The verified GLIM profile is `warehouse_slam/slam_simulation.launch.py`. The older `warehouse_bringup/warehouse_hardware.launch.py` starts the legacy EKF/slam_toolbox application; it is not the GLIM 3D hardware profile. Physical L2 operation is not certified by these simulation runs. Real point timestamps/deskew, LiDAR-to-IMU extrinsics, IMU source/bias/gravity, serial/network driver settings and motor calibration must be measured on the actual rover before a hardware GLIM profile is accepted. The supplied `global_shutter=true` and chassis-IMU configuration describe the simulation sensor, not a physical L2 calibration. Ground-height projection is a flat-site baseline and does not certify slopes or drop-offs.
 
 ## Validation: incompatible user pytest plugins
 
@@ -167,14 +167,14 @@ Do not migrate an existing install directory between ROS versions. Setup records
 
 ## Binary-first end-user installation
 
-`./setup.sh` installs apt prerequisites and downloads `niihan-ubuntu22.04-humble-amd64.tar.gz` or `niihan-ubuntu24.04-jazzy-amd64.tar.gz` from the release tagged `binaries-<full source commit>`. It verifies SHA-256 plus source commit, OS, ROS, architecture and Python metadata before installing. The old install is preserved under `.setup/backups`; runtime shared libraries are isolated under `.binary/deps/lib`. `./run.sh` remains the visible launch entry point. No C++ compilation occurs on this default path.
+`./setup.sh` installs apt prerequisites and downloads `warehouse-ubuntu22.04-humble-amd64.tar.gz` or `warehouse-ubuntu24.04-jazzy-amd64.tar.gz` from the release tagged `binaries-<full source commit>`. It verifies SHA-256 plus source commit, OS, ROS, architecture and Python metadata before installing. The old install is preserved under `.setup/backups`; runtime shared libraries are isolated under `.binary/deps/lib`. `./run.sh` remains the visible launch entry point. No C++ compilation occurs on this default path.
 
 For developers and CI, use `./setup.sh --source`; optional `--no-system --use-system-deps` applies to a prepared development machine. If this commit's binary release is still building or failed, setup reports that instead of pretending a binary is available. See GitHub Actions and Releases. A successful package installation check does not certify simulation, physical L2 operation or every graphics driver. SHA-256 detects corruption; trust still comes from this repository's release publication.
 
 
 ## Seven seaport layouts and GPS endpoint validation
 
-Seven worlds `seaport_01.sdf` through `seaport_07.sdf` in `src/niihan_description/worlds` retain the quay, crane, ship, warehouse, clear lane and rover spawn while varying cargo positions. They use procedural SDF geometry and require no imported meshes. The final route starts at world (-12, 0) and uses identical straight eastbound targets (-9, 0), (-6, 0), (-3, 0) metres in every layout. GLIM 3D SLAM and the 2D Nav2 projection remain active; the observer dashboard shows the point cloud, 2D map, GPS coordinates and labelled synthetic satellite markers without a separate world-model viewer.
+Seven worlds `seaport_01.sdf` through `seaport_07.sdf` in `src/warehouse_description/worlds` retain the quay, crane, ship, warehouse, clear lane and rover spawn while varying cargo positions. They use procedural SDF geometry and require no imported meshes. The final route starts at world (-12, 0) and uses identical straight eastbound targets (-9, 0), (-6, 0), (-3, 0) metres in every layout. GLIM 3D SLAM and the 2D Nav2 projection remain active; the observer dashboard shows the point cloud, 2D map, GPS coordinates and labelled synthetic satellite markers without a separate world-model viewer.
 
 ```bash
 # After ./setup.sh --source
@@ -184,7 +184,7 @@ bash scripts/seaport_validation/scripts/run_suite.sh 2 4
 python3 scripts/seaport_validation/scripts/aggregate.py scripts/seaport_validation/runs/YYYYMMDD_HHMMSS
 ```
 
-Leave ports 8080 and 8081 free. Each trial starts/stops its observer and uses isolated ROS/Gazebo domains. Results go to new timestamped run directories; NIIHAN_SEAPORT_OUTPUT overrides this location. The suite shell script finds the workspace relative to itself. The route was tested on Humble; Jazzy route acceptance remains pending. See [suite instructions](scripts/seaport_validation/README.md) and [recorded report and evidence](docs/seaport_validation/README.md).
+Leave ports 8080 and 8081 free. Each trial starts/stops its observer and uses isolated ROS/Gazebo domains. Results go to new timestamped run directories; WAREHOUSE_SEAPORT_OUTPUT overrides this location. The suite shell script finds the workspace relative to itself. The route was tested on Humble; Jazzy route acceptance remains pending. See [suite instructions](scripts/seaport_validation/README.md) and [recorded report and evidence](docs/seaport_validation/README.md).
 
 Measured on 20 October 2026: **7/7 routes and 21/21 waypoints passed**, with seven saved GLIM maps. Mean horizontal arrival error was 4.69 cm and maximum 4.89 cm against simulator truth, within the 10 cm criterion. Nav2 performs coarse arrival, then a bounded GPS final controller commands through the arbiter. GPS is ideal Gazebo NavSat with no realistic noise, outages or RF propagation; twelve sky markers are display fixtures and RTK is false. Ground truth is scoring only. One seed and one run per layout with fresh online mapping support the tested clear corridor only, not general environmental independence, frozen-map reuse or real GPS precision. Earlier turn/return trials passed 3/7 and are disclosed separately in the Word draft.
 

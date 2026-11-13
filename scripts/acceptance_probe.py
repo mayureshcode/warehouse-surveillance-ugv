@@ -19,10 +19,10 @@ async def run():
             tr=tf.lookup_transform('map','base_footprint',rclpy.time.Time());t=tr.transform;p=m.pose.pose.position
             log({'kind':'pose_pair','stamp':m.header.stamp.sec+m.header.stamp.nanosec/1e9,'estimate_stamp':tr.header.stamp.sec+tr.header.stamp.nanosec/1e9-.1,'truth_yaw':math.atan2(2*(m.pose.pose.orientation.w*m.pose.pose.orientation.z+m.pose.pose.orientation.x*m.pose.pose.orientation.y),1-2*(m.pose.pose.orientation.y**2+m.pose.pose.orientation.z**2)),'estimate_yaw':math.atan2(2*(t.rotation.w*t.rotation.z+t.rotation.x*t.rotation.y),1-2*(t.rotation.y**2+t.rotation.z**2)),'truth':[p.x,p.y,p.z],'estimate':[t.translation.x,t.translation.y,t.translation.z]})
         except TransformException:pass
-    n.create_subscription(Odometry,'/niihan/ground_truth',truth,qos_profile_sensor_data)
-    n.create_subscription(Twist,'/niihan/drive/cmd_vel',lambda m:log({'kind':'drive','v':m.linear.x,'w':m.angular.z}),10)
-    n.create_subscription(String,'/niihan/localizer/status',lambda m:log({'kind':'localizer','data':json.loads(m.data)}),10)
-    n.create_subscription(String,'/niihan/slam/status',lambda m:log({'kind':'slam','data':json.loads(m.data)}),10)
+    n.create_subscription(Odometry,'/warehouse/ground_truth',truth,qos_profile_sensor_data)
+    n.create_subscription(Twist,'/warehouse/drive/cmd_vel',lambda m:log({'kind':'drive','v':m.linear.x,'w':m.angular.z}),10)
+    n.create_subscription(String,'/warehouse/localizer/status',lambda m:log({'kind':'localizer','data':json.loads(m.data)}),10)
+    n.create_subscription(String,'/warehouse/slam/status',lambda m:log({'kind':'slam','data':json.loads(m.data)}),10)
     async def spin():
         while rclpy.ok():
             for _ in range(20):rclpy.spin_once(n,timeout_sec=0.)
@@ -84,7 +84,7 @@ async def run():
         estop_wall=time.time();await send('estop')
         for _ in range(5):await send('joystick',linear_x=.1,angular_z=0.)
         await asyncio.sleep(2);await send('clear_estop');await asyncio.sleep(2)
-        client=n.create_client(Trigger,'/niihan/slam/save_map')
+        client=n.create_client(Trigger,'/warehouse/slam/save_map')
         if client.service_is_ready():
             future=client.call_async(Trigger.Request());deadline=time.monotonic()+20
             while not future.done() and time.monotonic()<deadline:await asyncio.sleep(.1)

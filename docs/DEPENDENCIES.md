@@ -6,8 +6,8 @@ Tested platform: Ubuntu 22.04 amd64, ROS Humble and Gazebo Harmonic. Ubuntu 24.0
 sudo apt-get update
 sudo apt-get install git git-lfs
 git lfs install
-git clone --recurse-submodules --branch feat/l2-3d-slam-release https://github.com/Im-praj/niihan_ws.git
-cd niihan_ws
+git clone --recurse-submodules --branch feat/l2-3d-slam-release https://github.com/Im-praj/warehouse_ws.git
+cd warehouse_ws
 git lfs pull
 git submodule sync --recursive
 git submodule update --init --recursive

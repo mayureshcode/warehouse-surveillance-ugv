@@ -36,7 +36,7 @@ jobs:
           key: cpu-deps-${{ matrix.os }}-${{ hashFiles('scripts/build_dependencies.sh') }}
       - name: Install, build and validate native profile
         env:
-          NIIHAN_BUILD_JOBS: '2'
+          WAREHOUSE_BUILD_JOBS: '2'
         run: ./setup.sh --source --allow-system-removals
       - name: Preserve dependency compilation for retries
         if: always()
@@ -56,9 +56,9 @@ jobs:
           git clone --no-local "$PWD" "$RUNNER_TEMP/binary-consumer"
           cd "$RUNNER_TEMP/binary-consumer"
           source scripts/platform.sh
-          niihan_select_platform
+          warehouse_select_platform
           source /opt/ros/${{ matrix.ros }}/setup.bash
-          python3 scripts/install_binary.py "$PWD" --archive "$RUNNER_TEMP/binary/niihan-ubuntu${{ matrix.os == 'ubuntu-22.04' && '22.04' || '24.04' }}-${{ matrix.ros }}-amd64.tar.gz"
+          python3 scripts/install_binary.py "$PWD" --archive "$RUNNER_TEMP/binary/warehouse-ubuntu${{ matrix.os == 'ubuntu-22.04' && '22.04' || '24.04' }}-${{ matrix.ros }}-amd64.tar.gz"
           ./scripts/check_binary.sh
       - name: Publish revision-matched binary download
         env:

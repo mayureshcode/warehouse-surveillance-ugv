@@ -2,13 +2,13 @@
 set -eo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$root/scripts/platform.sh"
-niihan_select_platform
+warehouse_select_platform
 source "$root/scripts/environment.sh"
 deps="$root/.deps"
-[[ "$NIIHAN_ROS_DISTRO" != jazzy ]] || deps="$deps/jazzy"
+[[ "$WAREHOUSE_ROS_DISTRO" != jazzy ]] || deps="$deps/jazzy"
 mkdir -p "$deps/src"
-jobs="${NIIHAN_BUILD_JOBS:-2}"
-[[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo 'NIIHAN_BUILD_JOBS must be a positive integer';exit 2; }
+jobs="${WAREHOUSE_BUILD_JOBS:-2}"
+[[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { echo 'WAREHOUSE_BUILD_JOBS must be a positive integer';exit 2; }
 checkout() {
   local name="$1" url="$2" sha="$3" path="$deps/src/$1"
   if [[ ! -d "$path/.git" ]]; then git clone "$url" "$path"; fi

@@ -6,13 +6,13 @@ import os,struct,sys,rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import NavSatFix
-from niihan_bringup.contracts import ubx_checksum
+from warehouse_bringup.contracts import ubx_checksum
 class Fixture(Node):
     def __init__(self,fd):
         super().__init__('f9p_protocol_fixture');self.fd=fd
         self.declare_parameter('use_sim_time',True) if not self.has_parameter('use_sim_time') else self.set_parameters([rclpy.parameter.Parameter('use_sim_time',value=True)])
         self.declare_parameter('quality_state','fixed')
-        self.create_subscription(NavSatFix,'/niihan/raw/gnss/fix',self.fix,qos_profile_sensor_data)
+        self.create_subscription(NavSatFix,'/warehouse/raw/gnss/fix',self.fix,qos_profile_sensor_data)
         os.set_blocking(fd,False);self.create_timer(.05,self.drain)
     def drain(self):
         try:os.read(self.fd,4096)

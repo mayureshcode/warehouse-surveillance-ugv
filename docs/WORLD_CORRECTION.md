@@ -1,6 +1,6 @@
 # Construction world correction
 
-The initial imported procedural world shared its model layout with niihan_patrol_base.world. Its new filename did not make it visually distinct. That implementation is superseded.
+The initial imported procedural world shared its model layout with warehouse_patrol_base.world. Its new filename did not make it visually distinct. That implementation is superseded.
 
 The installed default now uses the supplied chunk5 ground/site GLBs for visual and collision geometry, with a new surrounding construction layout: crane, unfinished steel building, office, container, barriers and material stacks. It has 92 static models, and the robot spawns at (-12, 0, 0.15). The original textured visual mesh was not supplied; this uses simplified collision meshes with materials. Proprietary assets remain local and ignored by Git.
 
@@ -9,8 +9,8 @@ Verification: both packages rebuilt, 72 Python tests passed, 9 browser checks pa
 Stop the previous Gazebo/ROS launch with Ctrl+C, then run:
 
 ```bash
-cd /home/praj/niihan_ws
+cd /home/praj/warehouse_ws
 ./scripts/run_construction.sh
 ```
 
-This script explicitly sources niihan_ws/install/setup.bash and selects world:=niihan_construction_site.sdf, avoiding another sourced workspace's package selection.
+This script explicitly sources warehouse_ws/install/setup.bash and selects world:=warehouse_construction_site.sdf, avoiding another sourced workspace's package selection.
